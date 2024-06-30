@@ -118,7 +118,7 @@ exports.changePassword = (req, res) => {
               return res.status(401).send({ message: "User Not found." });
           }
 
-          var passwordIsValid = bcrypt.compareSync(
+          let passwordIsValid = bcrypt.compareSync(
               req.body.password,
               user.password
           );

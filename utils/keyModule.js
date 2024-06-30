@@ -23,14 +23,14 @@ async function encryptPrivateKey(privateKeyHex, aesKey, iv) {
     if (!iv){
         iv = crypto.randomBytes(16);
     }
-    const cipher = crypto.createCipheriv('aes-256-cbc', aesKey, iv);
+    const cipher = crypto.createCipheriv('AES-256-GCM', aesKey, iv);
     let encrypted = cipher.update(privateKeyHex, 'hex', 'base64');
     encrypted += cipher.final('base64');
     return { iv: iv.toString('base64'), encrypted };
 }
 
 function decryptPrivateKey(encryptedPrivateKey, aesKey, iv) {
-    const decipher = crypto.createDecipheriv('aes-256-cbc', aesKey, Buffer.from(iv, 'base64'));
+    const decipher = crypto.createDecipheriv('AES-256-GCM', aesKey, Buffer.from(iv, 'base64'));
     let decrypted = decipher.update(encryptedPrivateKey, 'base64', 'hex');
     decrypted += decipher.final('hex');
     return decrypted;
@@ -66,8 +66,6 @@ async function encryptWithPrivateKey(encryptedPrivateKey, iv, aesKey, data) {
     }, Buffer.from(data));
 
     const encryptedString = encryptedData.toString('base64');
-    // console.log('Encrypted data:', encryptedString);
-    // console.log('it is string?', typeof encryptedString === 'string');
     return encryptedString;
 }
 

@@ -136,6 +136,8 @@ exports.newPass = async (req, res) => {
     }
 };
 
+const galat = Promise.reject(new Error('skip'));
+
 exports.newKey = (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -149,7 +151,7 @@ exports.newKey = (req, res) => {
         .then(existingKeys => {
             if (existingKeys.length >= 3) {
                 res.status(400).json({ message: "User already has 3 key pairs." });
-                return Promise.reject('skip');
+                return galat;
             }
 
             return dKeys.findOne({ where: { userId: userId, label: label } });
@@ -157,7 +159,7 @@ exports.newKey = (req, res) => {
         .then(existingLabel => {
             if (existingLabel) {
                 res.status(400).json({ message: "Label already exists." });
-                return Promise.reject('skip');
+                return galat;
             }
 
             const aesKey = Buffer.from(config.master, 'base64');
@@ -172,8 +174,9 @@ exports.newKey = (req, res) => {
 
             if (!publicKey || !encryptedKey || !iv) {
                 res.status(500).json({ message: "Key pair generation failed" });
-                return Promise.reject('skip');  
+                return galat;  
             }
+
             return dKeys.create({
                 userId: userId,
                 label: label,
@@ -187,7 +190,7 @@ exports.newKey = (req, res) => {
             res.status(201).json(newKey);
         })
         .catch(error => {
-            if (error !== 'skip') {
+            if (error.message !== 'skip') {
                 console.error(error);
                 res.status(500).json({ message: "Internal server error" });
             }
@@ -219,10 +222,7 @@ exports.deleteKey = async (req, res) => {
         const aesKey = Buffer.from(config.master, 'base64');
         const ivKey = Buffer.from(key.iv, 'base64');
 
-        const { iv, encrypted } = await encryptPrivateKey(privateKey, aesKey, ivKey);
-
-        console.log('this is private1', privateKey);
-        console.log('this is private2', encrypted)
+        const { encrypted } = await encryptPrivateKey(privateKey, aesKey, ivKey);
 
         if (key.private !== encrypted) {
             return res.status(400).json({ message: "Private key does not match" });

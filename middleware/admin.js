@@ -2,7 +2,7 @@ const db = require("../models");
 const User = db.users;
 const Role = db.role;
 
-isAdmin = (req, res, next) => {
+let isAdmin = (req, res, next) => {
     User.findOne({
         where: {
             userId: req.userId

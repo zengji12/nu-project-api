@@ -33,7 +33,7 @@ if (process.env.SSL_MODE === 'ON') {
         ]
     };
     const HTTPSPORT = process.env.HTTPS_PORT || 5080;
-    const server = https.createServer(https_options, app).listen(HTTPSPORT, 'localhost', () => {
+    https.createServer(https_options, app).listen(HTTPSPORT, 'localhost', () => {
         console.log(`Project server is running on ${HTTPSPORT}.`);
     });
 }
