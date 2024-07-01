@@ -23,8 +23,8 @@ exports.new = async (req, res) => {
         const hashedPassword = bcrypt.hashSync(password, 8);
 
         const aesKey = Buffer.from(config.master, 'base64');
-        const { publicKey, encryptedKey, iv } = await generateRSAKeyPair(aesKey);
-        const encryptedAlamat = await encryptWithPrivateKey(encryptedKey, iv, aesKey, alamat);
+        const { publicKey, encryptedKey, iv, authTag } = await generateRSAKeyPair(aesKey);
+        const encryptedAlamat = await encryptWithPrivateKey(encryptedKey, iv, aesKey, authTag, alamat);
 
         const user = await User.create({
             userId: userId,
@@ -39,7 +39,8 @@ exports.new = async (req, res) => {
             label: "your first key pair",
             public: publicKey,
             private: encryptedKey,
-            iv: iv
+            iv: iv,
+            authTag: authTag // Save authTag to the database
         });
 
         console.log(`[new user added][${new Date()}] ${name} has joined`);
@@ -71,7 +72,8 @@ exports.delete = async (req, res) => {
                             userId: key.userId,
                             public: key.public,
                             private: key.private,
-                            iv: key.iv
+                            iv: key.iv,
+                            authTag: key.authTag
                         });
                     } catch (error) {
                         console.error(`Error saving key to junk keys:`, error);
@@ -136,65 +138,52 @@ exports.newPass = async (req, res) => {
     }
 };
 
-const galat = Promise.reject(new Error('skip'));
-
-exports.newKey = (req, res) => {
+exports.newKey = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
     }
 
-    const userId = req.userId;
-    const label = req.body.label;
+    try {
+        const userId = req.userId;
+        const label = req.body.label;
 
-    dKeys.findAll({ where: { userId: userId } })
-        .then(existingKeys => {
-            if (existingKeys.length >= 3) {
-                res.status(400).json({ message: "User already has 3 key pairs." });
-                return galat;
-            }
+        const existingKeys = await dKeys.findAll({ where: { userId: userId } });
+        if (existingKeys.length >= 3) {
+            return res.status(400).json({ message: "User already has 3 key pairs." });
+        }
 
-            return dKeys.findOne({ where: { userId: userId, label: label } });
-        })
-        .then(existingLabel => {
-            if (existingLabel) {
-                res.status(400).json({ message: "Label already exists." });
-                return galat;
-            }
+        const existingLabel = await dKeys.findOne({ where: { userId: userId, label: label } });
+        if (existingLabel) {
+            return res.status(400).json({ message: "Label already exists." });
+        }
 
-            const aesKey = Buffer.from(config.master, 'base64');
-            return generateRSAKeyPair(aesKey);
-        })
-        .then(keyPair => {
-            if (!keyPair) {
-                throw new Error("Key pair generation failed");
-            }
+        const aesKey = Buffer.from(config.master, 'base64');
+        const keyPair = await generateRSAKeyPair(aesKey);
+        if (!keyPair) {
+            throw new Error("Key pair generation failed");
+        }
 
-            const { publicKey, encryptedKey, iv } = keyPair;
+        const { publicKey, encryptedKey, iv, authTag } = keyPair;
+        if (!publicKey || !encryptedKey || !iv) {
+            return res.status(500).json({ message: "Key pair generation failed" });
+        }
 
-            if (!publicKey || !encryptedKey || !iv) {
-                res.status(500).json({ message: "Key pair generation failed" });
-                return galat;  
-            }
-
-            return dKeys.create({
-                userId: userId,
-                label: label,
-                public: publicKey,
-                private: encryptedKey,
-                iv: iv
-            });
-        })
-        .then(newKey => {
-            console.log(`[new key][${new Date()}] user ${userId} is making new key`);
-            res.status(201).json(newKey);
-        })
-        .catch(error => {
-            if (error.message !== 'skip') {
-                console.error(error);
-                res.status(500).json({ message: "Internal server error" });
-            }
+        const newKey = await dKeys.create({
+            userId: userId,
+            label: label,
+            public: publicKey,
+            private: encryptedKey,
+            iv: iv,
+            authTag: authTag
         });
+
+        console.log(`[new key][${new Date()}] user ${userId} is making new key`);
+        res.status(201).json(newKey);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
 };
 
 exports.deleteKey = async (req, res) => {
@@ -232,7 +221,8 @@ exports.deleteKey = async (req, res) => {
             userId: key.userId,
             public: key.public,
             private: key.private,
-            iv: key.iv
+            iv: key.iv,
+            authTag: key.authTag
         });
 
         await dKeys.destroy({
@@ -264,7 +254,7 @@ exports.getKey = async (req, res) => {
         const aesKey = Buffer.from(config.master, 'base64');
 
         const decryptedUserKeys = userKeys.map(key => {
-            const decryptedPrivateKey = decryptPrivateKey(key.private, aesKey, key.iv);
+            const decryptedPrivateKey = decryptPrivateKey(key.private, aesKey, key.iv, key.authTag);
             return {
                 label: key.label,
                 public: key.public,

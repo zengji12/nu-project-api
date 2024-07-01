@@ -2,7 +2,6 @@ module.exports = (sequelize, Sequelize) => {
     const userKey = sequelize.define("userkeys", {
         userId: {
             type: Sequelize.STRING,
-            primaryKey: true,
             references: {
                 model: 'users',
                 key: 'userId'
@@ -10,7 +9,7 @@ module.exports = (sequelize, Sequelize) => {
             onDelete: 'CASCADE',
             onUpdate: 'CASCADE'            
         },
-        label:{
+        label: {
             type: Sequelize.STRING,
             allowNull: false
         },
@@ -25,7 +24,11 @@ module.exports = (sequelize, Sequelize) => {
         iv: {
             type: Sequelize.STRING,
             allowNull: false
-        }
+        },
+        authTag: {
+            type: Sequelize.BLOB, 
+            allowNull: false
+        },
     });
 
     return userKey;

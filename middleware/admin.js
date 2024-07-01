@@ -21,9 +21,7 @@ let isAdmin = (req, res, next) => {
         let isAdmin = user.roles.some(role => role.id === 3);
 
         if (!isAdmin) {
-            return res.status(403).send({
-                message: "Insufficient privilege!"
-            });
+            return res.status(200).json({ isAdmin: false });
         }
         next();
     }).catch(err => {

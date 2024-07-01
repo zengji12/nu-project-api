@@ -21,6 +21,10 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING,
             allowNull: false
         },
+        authTag: {
+            type: Sequelize.BLOB, 
+            allowNull: false
+        },
         }, {
           timestamps: true
         });
