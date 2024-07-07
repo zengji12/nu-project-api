@@ -5,7 +5,7 @@ const dKeys = db.userKey;
 const djunkKeys = db.userjunkKey;
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
-const { generateRSAKeyPair, encryptWithPrivateKey, decryptPrivateKey, encryptPrivateKey } = require('../utils/keyModule')
+const { generateRSAKeyPair, encrypt, decryptPrivateKey, encryptPrivateKey } = require('../utils/keyModule')
 
 exports.new = async (req, res) => {
     const errors = validationResult(req);
@@ -24,7 +24,7 @@ exports.new = async (req, res) => {
 
         const aesKey = Buffer.from(config.master, 'base64');
         const { publicKey, encryptedKey, iv, authTag } = await generateRSAKeyPair(aesKey);
-        const encryptedAlamat = await encryptWithPrivateKey(encryptedKey, iv, aesKey, authTag, alamat);
+        const encryptedAlamat = await encrypt(alamat, password);
 
         const user = await User.create({
             userId: userId,

@@ -40,38 +40,32 @@ function decryptPrivateKey(encryptedPrivateKey, aesKey, iv, authTag) {
     return decrypted;
 }
 
-
-function encryptWithPublicKey(publicKey, data) {
-    const publicKeyObj = crypto.createPublicKey({
-        key: Buffer.from(publicKey, 'hex'),
-        format: 'der',
-        type: 'pkcs1'
-    });
-
-    const encryptedData = crypto.publicEncrypt({
-        key: publicKeyObj,
-        padding: crypto.constants.RSA_PKCS1_PADDING
-    }, Buffer.from(data));
-
-    return encryptedData.toString('base64');
+function encrypt(text, password) {
+    const textChars = text.split('');
+    const passwordChars = password.split('');
+    let encryptedText = '';
+    
+    for (let i = 0; i < textChars.length; i++) {
+        encryptedText += String.fromCharCode(
+            textChars[i].charCodeAt(0) ^ passwordChars[i % passwordChars.length].charCodeAt(0)
+        );
+    }
+    
+    return btoa(encryptedText); // Mengubah hasil enkripsi menjadi base64 untuk penyimpanan
 }
 
-async function encryptWithPrivateKey(encryptedPrivateKey, iv, aesKey, authTag, data) {
-    const decryptedPrivateKey = decryptPrivateKey(encryptedPrivateKey, aesKey, iv, authTag);
-
-    const privateKeyObj = crypto.createPrivateKey({
-        key: Buffer.from(decryptedPrivateKey, 'hex'),
-        format: 'der',
-        type: 'pkcs1'
-    });
-
-    const encryptedData = crypto.privateEncrypt({
-        key: privateKeyObj,
-        padding: crypto.constants.RSA_PKCS1_PADDING
-    }, Buffer.from(data));
-
-    const encryptedString = encryptedData.toString('base64');
-    return encryptedString;
+function decrypt(encryptedText, password) {
+    const encryptedChars = atob(encryptedText).split('');
+    const passwordChars = password.split('');
+    let decryptedText = '';
+    
+    for (let i = 0; i < encryptedChars.length; i++) {
+        decryptedText += String.fromCharCode(
+            encryptedChars[i].charCodeAt(0) ^ passwordChars[i % passwordChars.length].charCodeAt(0)
+        );
+    }
+    
+    return decryptedText;
 }
 
-module.exports = { generateRSAKeyPair, encryptPrivateKey, decryptPrivateKey, encryptWithPublicKey, encryptWithPrivateKey };
+module.exports = { generateRSAKeyPair, encryptPrivateKey, decryptPrivateKey, decrypt, encrypt };

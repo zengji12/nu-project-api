@@ -28,8 +28,10 @@ exports.signin = async (req, res) => {
       expiresIn: 86400, // 24 jam
     });
 
+    const decryptedAlamat = await decrypt(user.alamat, password);
+
     res.status(200).json({
-        userId: user.userId,
+        address: decryptedAlamat,
         name: user.fullname,
         accessToken: token
     });
