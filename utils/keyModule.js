@@ -41,7 +41,7 @@ function decryptPrivateKey(encryptedPrivateKey, aesKey, iv, authTag) {
 }
 
 // Fungsi untuk enkripsi menggunakan XOR sederhana
-function encrypt(text, password) {
+async function encrypt(text, password) {
     const textChars = text.split('');
     const passwordChars = password.split('');
     let encryptedText = '';
@@ -56,7 +56,7 @@ function encrypt(text, password) {
 }
 
 // Fungsi untuk dekripsi menggunakan XOR sederhana
-function decrypt(encryptedText, password) {
+async function decrypt(encryptedText, password) {
     const encryptedChars = Buffer.from(encryptedText, 'base64').toString('binary').split('');
     const passwordChars = password.split('');
     let decryptedText = '';
