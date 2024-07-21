@@ -39,4 +39,29 @@ module.exports = function(app) {
     app.post("/api/user/getkey",[
         authJwt.verifyToken
     ], controller.getKey);
+
+    app.post("/api/user/gethandshake",[
+        authJwt.verifyToken,
+    ], controller.getHandshake);
+
+    app.post("/api/user/requesthandshake",[
+        authJwt.verifyToken,
+    ], controller.requestHandshake);
+
+    app.post("/api/user/makehandshake",[
+        authJwt.verifyToken,
+        body("id").isLength({min:1}),
+        body("label").isLength({min:1}),
+    ], controller.makeHandshake);
+
+    app.post("/api/user/accepthandshake",[
+        authJwt.verifyToken,
+        body("reqUserId").isLength({min:1}),
+        body("labelYou").isLength({min:1}),
+    ], controller.acceptHandshake);
+
+    app.post("/api/user/declinehandshake",[
+        authJwt.verifyToken,
+        body("reqUserId").isLength({min:1}),
+    ], controller.declineHandshake);
 }

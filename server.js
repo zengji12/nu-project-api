@@ -22,6 +22,7 @@ db.sequelize.sync().then(() => {
 
 require('./routes/auth.routes.js')(app);
 require('./routes/user.routes.js')(app);
+require('./routes/comunicate.routes.js')(app);
 
 if (process.env.SSL_MODE === 'ON') {
     const https_options = {

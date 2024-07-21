@@ -25,7 +25,7 @@ module.exports = function(app) {
         authJwt.verifyToken,
         body('password').isLength({min: 1}),
         body('newPassword').isLength({min: 8}).withMessage('minimal is 8 character')
-    ], controller.changePassword);
+    ], controller.newPass);
 
     app.post("/api/auth/deleteUser", [
         authJwt.verifyToken,

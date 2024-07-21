@@ -17,12 +17,20 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.TEXT,
             allowNull: false
         },
-        iv: {
+        publicKeyIv: {
             type: Sequelize.STRING,
             allowNull: false
         },
-        authTag: {
-            type: Sequelize.BLOB, 
+        privateKeyIv: {
+            type: Sequelize.STRING,
+            allowNull: false
+        },
+        publicKeyAuthTag: {
+            type: Sequelize.STRING, 
+            allowNull: false
+        },
+        privateKeyAuthTag: {
+            type: Sequelize.STRING, 
             allowNull: false
         },
         }, {

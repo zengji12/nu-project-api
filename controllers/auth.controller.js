@@ -90,63 +90,50 @@ exports.refreshToken = (req, res) => {
   });
 };
 
-exports.changePassword = (req, res) => {
+exports.newPass = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-      return res.status(422).send({ message: "Invalid input", errors: errors.array() });
+      return res.status(400).json({ errors: errors.array() });
   }
 
-  let token = req.headers.authorization;
+  const oldPass = req.body.oldPass;
+  const newPass = req.body.newPass;
+  const token = req.headers['x-access-token'] || req.body.token;
+
   if (!token) {
-      return res.status(403).send({
-          message: "No token provided!",
-      });
+      return res.status(403).json({ message: "No token provided!" });
   }
 
-  token = token.split(" ")[1];
+  try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId;
 
-  jwt.verify(token, config.secret, { ignoreExpiration: true }, (err, decoded) => {
-      if (err || !decoded.username) {
-          return res.status(403).send({
-              message: "Invalid token!",
-          });
+      const user = await User.findOne({ where: { userId: userId } });
+
+      if (!user) {
+          return res.status(404).json({ message: "user not found!" });
       }
 
-      User.findOne({
-          where: {
-              username: decoded.username
-          }
-      }).then(user => {
-          if (!user) {
-              return res.status(401).send({ message: "User Not found." });
-          }
+      const passwordIsValid = await bcrypt.compare(oldPass, user.password);
 
-          let passwordIsValid = bcrypt.compareSync(
-              req.body.password,
-              user.password
-          );
+      if (!passwordIsValid) {
+          return res.status(401).json({ message: "Invalid old password!" });
+      }
 
-          if (!passwordIsValid) {
-              return res.status(401).send({
-                  accessToken: null,
-                  message: "Invalid Password!"
-              });
-          } else {
-              User.update({
-                  password: bcrypt.hashSync(req.body.newPassword, 8)
-              }, {
-                  where: { username: decoded.username }
-              }).then(user => {
-                  console.log(`[auth password change][${new Date()}] ${user.username} change password`);
-                  res.send({ message: "Password changed successfully!" });
-              }).catch(err => {
-                  res.status(500).send({ message: err.message });
-              });
-          }
-      }).catch(err => {
-          res.status(500).send({ message: err.message });
-      });
-  });
+      const newAlamat = await decrypt(user.alamat, oldPass);
+      const encryptedAlamat = await encrypt(newAlamat, newPass);
+
+      const hashedNewPass = await bcrypt.hash(newPass, 8);
+      user.alamat = encryptedAlamat;
+      user.password = hashedNewPass;
+      await user.save();
+
+      console.log(`[change password][${new Date()}] user ${userId} is renew password`);
+      return res.status(200).json({ message: "Password updated successfully!" });
+  } catch (error) {
+      console.error("Error renewing password:", error);
+      return res.status(500).json({ message: "Internal Server Error" });
+  }
 };
 
 exports.deleteuser = async (req, res) => {
@@ -184,9 +171,12 @@ exports.deleteuser = async (req, res) => {
           try {
             await djunkKeys.create({
               userId: key.userId,
-              public: key.public,
-              private: key.private,
-              iv: key.iv,
+              public: key.publicKey,
+              private: key.privateKey,
+              publicKeyIv: key.publicKeyIv,
+              privateKeyIv: key.privateKeyIv,
+              publicKeyAuthTag: key.publicKeyAuthTag,
+              privateKeyAuthTag: key.privateKeyAuthTag
             });
           } catch (error) {
             console.error(`Error saving key to junk keys:`, error);
