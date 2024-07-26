@@ -6,6 +6,7 @@ const djunkKeys = db.userjunkKey;
 const mhand = db.handshake;
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
+const { Op } = require('sequelize');
 const { generateRSAKeyPair, encrypt, decryptKey, decrypt, encryptRSA, decryptRSA } = require('../utils/keyModule')
 
 exports.new = async (req, res) => {
@@ -336,10 +337,12 @@ exports.getHandshake = async (req, res) => {
     const userId = req.userId;
 
     try {
-        // Temukan semua handshakes dengan kondisi 'waiting'
-        const waitingHandshakes = await mhand.findAll({
+        const handshakes = await mhand.findAll({
             where: {
-                toUserId: userId,
+                [Op.or]: [
+                    { userId: userId },
+                    { toUserId: userId }
+                ],
                 condition: 'accept'
             },
             include: [
@@ -347,19 +350,38 @@ exports.getHandshake = async (req, res) => {
                     model: User,
                     as: 'User',
                     attributes: ['userId', 'fullname'] // Include only necessary attributes
+                },
+                {
+                    model: User,
+                    as: 'ToUser',
+                    attributes: ['userId', 'fullname']
                 }
             ]
         });
 
-        // Map the result to return only the necessary information
-        const response = waitingHandshakes.map(handshake => ({
+        const waitingHandshakes = handshakes.filter(handshake => handshake.toUserId === userId);
+        const myHandshake = handshakes.filter(handshake => handshake.userId === userId);
+
+        const response1 = waitingHandshakes.map(handshake => ({
             user: {
                 userId: handshake.User.userId,
                 fullname: handshake.User.fullname
             },
             labelMe: handshake.labelMe,
-            labelYou: handshake.labelYou
+            labelYou: handshake.labelYou,
         }));
+
+        const response2 = myHandshake.map(handshake => ({
+            user: {
+                userId: handshake.ToUser.userId,
+                fullname: handshake.ToUser.fullname
+            },
+            labelMe: handshake.labelYou,
+            labelYou: handshake.labelMe,
+        }));
+
+        // Combine the results
+        const response = [...response1, ...response2];
 
         res.status(201).json(response);
     } catch (error) {

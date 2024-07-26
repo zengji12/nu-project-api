@@ -11,14 +11,14 @@ module.exports = function(app) {
         next();
     });
 
-    app.post("/api/comunicate/encrypt",[
+    app.post("/api/communicate/encrypt",[
         authJwt.verifyToken,
         body("targetUserId").isLength({min:1}),
         body("label").isLength({min:1}),
         body("message").isLength({min:1})
     ], controller.communicateEncrypt);
 
-    app.post("/api/comunicate/decrypt",[
+    app.post("/api/communicate/decrypt",[
         authJwt.verifyToken,
         body("label").isLength({min:1}),
         body("message").isLength({min:1})
